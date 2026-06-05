@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python-service-template"
+version = "0.1.0"
+description = "My standard Python service template."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+  "typer>=0.12",
+  "rich>=13.7",
+]
+
+# Dependencies (extras) for end-users (runtime features); pip install package[extra]
+[project.optional-dependencies]
+yaml = [
+  "pyyaml>=6.0.1",
+]
+
+# Dependencies for workflow tooling during development (uv, testing, linting, etc.)
+[dependency-groups]
+dev = [
+    "nox>=2026.2.9",
+    "pre-commit>=4.5.1",
+    "pyright>=1.1.408",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.9",
+]
+
+[project.scripts]
+pst = "python_service_template.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/python_service_template"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "scripts"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["src/python_service_template/__main__.py", "scripts/rename_template.py"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PTH", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ["src", "tests", "scripts"]
+extraPaths = ["src", "scripts"]
+typeCheckingMode = "strict"
+pythonVersion = "3.11"
+reportMissingTypeStubs = false

@@ -1,0 +1,7 @@
+[app]
+name = "python-service-template"
+log_level = "INFO"
+env = "dev"
+
+[service]
+run_seconds = 1

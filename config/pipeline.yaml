@@ -1,0 +1,5 @@
+# Optional orchestration config (YAML)
+# Install with: uv sync --extra yaml --dev
+steps:
+  - name: hello
+    cmd: ["pst", "hello", "--name", "Jeremiah"]

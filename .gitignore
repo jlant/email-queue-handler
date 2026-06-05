@@ -1,0 +1,21 @@
+### Python & uv ###
+__pycache__/
+*.py[cod]
+.venv/
+.python-version
+
+### Nox & Pytest ###
+.nox/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+### Neovim & Swaps ###
+*.swp
+*.swo
+*~
+.netrwhist
+
+### Environment Variables ###
+.env
