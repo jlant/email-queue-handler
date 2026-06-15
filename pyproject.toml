@@ -3,15 +3,16 @@ requires = ["hatchling>=1.24"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-service-template"
+name = "email-queue-handler"
 version = "0.1.0"
-description = "My standard Python service template."
+description = "A Python service that monitors an SQL Server database queue, dispatches pending emails via SMTP, and tracks delivery status."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 dependencies = [
   "typer>=0.12",
   "rich>=13.7",
+  "pyodbc>=5.3.0",
 ]
 
 # Dependencies (extras) for end-users (runtime features); pip install package[extra]
@@ -32,10 +33,10 @@ dev = [
 ]
 
 [project.scripts]
-pst = "python_service_template.cli:app"
+eqh = "email_queue_handler.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/python_service_template"]
+packages = ["src/email_queue_handler"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "scripts"]
@@ -45,7 +46,7 @@ addopts = "-q"
 [tool.coverage.run]
 source = ["src"]
 branch = true
-omit = ["src/python_service_template/__main__.py", "scripts/rename_template.py"]
+omit = ["src/email_queue_handler/__main__.py", "scripts/rename_template.py"]
 
 [tool.coverage.report]
 show_missing = true

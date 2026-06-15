@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from python_service_template.config import resolve_settings
-from python_service_template.settings import DEFAULT_APP_NAME
+from email_queue_handler.config import resolve_settings
+from email_queue_handler.settings import DEFAULT_APP_NAME
 
 
 def test_resolve_settings_with_no_path_uses_default() -> None:

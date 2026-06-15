@@ -1,6 +1,8 @@
-# Python Service Template
+# Email Queue Handler
 
-A minimal, production-grade Python service with a CLI interface.
+An automated Python script that monitors an SQL Server database queue, dispatches
+pending emails via SMTP, and tracks delivery status.
+
 
 ## Tools
 
@@ -18,12 +20,12 @@ A minimal, production-grade Python service with a CLI interface.
 ## Quick start
 
 ```bash
-uv run pst --help
-uv run pst hello
-uv run pst hello -n Jeremiah
-uv run pst read-config
-uv run pst run
-APP_LOG_LEVEL=DEBUG APP_RUN_SECONDS=0 uv run pst run
+uv run eqh --help
+uv run eqh hello
+uv run eqh hello -n Jeremiah
+uv run eqh read-config
+uv run eqh run
+APP_LOG_LEVEL=DEBUG APP_RUN_SECONDS=0 uv run eqh run
 ```
 
 ## Development workflow
@@ -43,10 +45,10 @@ uv run nox -s lint
 uv run nox -s tests
 
 # Check template reads config file
-uv run pst read-config
+uv run eqh read-config
 
 # Check template runs service
-uv run pst run
+uv run eqh run
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on the development workflow and

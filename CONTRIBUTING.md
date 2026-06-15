@@ -27,10 +27,10 @@ uv run nox -s lint
 uv run nox -s tests
 
 # Check template reads config file
-uv run pst read-config
+uv run eqh read-config
 
 # Check template runs service
-uv run pst run
+uv run eqh run
 ```
 
 ## Working on a project spawned from this template

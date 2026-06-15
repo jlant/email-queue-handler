@@ -1,7 +1,21 @@
 [app]
-name = "python-service-template"
+name = "email-queue-handler"
+env = "DEV"
 log_level = "INFO"
-env = "dev"
+log_file = "/mnt/c/Users/jlant/project-testing/email-queue-handler/logs/email_queue_handler.log"
+
+[sqlserver]
+driver = "ODBC Driver 18 for SQL Server"
+host = "10.1.40.135"
+database = "OracleInterface"
+user = "SA"
 
 [service]
-run_seconds = 1
+run_seconds = 0
+
+[email]
+smtp_server = "mail.llflex.com"
+smtp_port = 587
+send_from = "networkprinter@llflex.com"
+send_to = "jlant@llflex.com"
+user = "networkprinter@llflex.com"

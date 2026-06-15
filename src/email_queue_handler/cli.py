@@ -12,8 +12,8 @@ from .logging import configure_logging
 from .service import Service
 from .settings import Settings
 
-DIST_NAME = "python-service-template"
-CLI_NAME = "pst"
+DIST_NAME = "email-queue-handler"
+CLI_NAME = "eqh"
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -46,7 +46,7 @@ def main(
     ),
 ):
     """
-    [green] Python Service Template (pst) CLI Tool[/green] :rocket:
+    [green] Email Queue Handler (EQH) CLI Tool[/green] :rocket:
 
     A minimal, production-grade Python service with a CLI interface.
     """

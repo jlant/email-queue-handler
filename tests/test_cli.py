@@ -2,7 +2,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from python_service_template.cli import CLI_NAME, app
+from email_queue_handler.cli import CLI_NAME, app
 
 runner = CliRunner()
 

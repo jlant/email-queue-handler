@@ -1,7 +1,7 @@
 import pytest
 
-from python_service_template.service import Service
-from python_service_template.settings import Settings
+from email_queue_handler.service import Service
+from email_queue_handler.settings import Settings
 
 
 def test_service_start_run_stop() -> None:
