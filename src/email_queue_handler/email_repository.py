@@ -9,155 +9,76 @@ from .models import Email
 
 logger = logging.getLogger(__name__)
 
+TABLE = "OracleInterface.tblEmailMessage"
+
+# Column names are listed once, here, so the SELECT and the row-mapper cannot
+# drift apart. Order matters: it is the contract between the query and
+# _row_to_email below.
+_COLUMNS = (
+    "EmailSerialNumber",
+    "Machine",
+    "Email_To",
+    "EmailDateTime",
+    "Subject",
+    "Message",
+)
+
+_SELECT_COLUMNS = ", ".join(_COLUMNS)
+
+
+def _row_to_email(row: pyodbc.Row) -> Email:
+    """Map one SQL row to an Email.
+
+    Mapping is explicit and positional, matching ``_COLUMNS``. If the query and
+    this function ever disagree, you get an obvious error here rather than a
+    cryptic failure deep inside a dataclass constructor.
+    """
+    return Email(
+        serial_number=int(row[0]),
+        machine=str(row[1]),
+        recipient=str(row[2]),
+        queued_at=row[3],
+        subject=str(row[4]),
+        body=str(row[5]) if row[5] is not None else "",
+    )
+
 
 class EmailRepository(BaseRepository):
-    def get_all(self) -> list[Email]:
-        """Fetches all emails"""
-        query = """
-            SELECT
-                EmailSerialNumber AS serial_number,
-                Machine AS machine
-                Email_To AS to,
-                EmailDateTime AS, datetime
-                Subject AS subject,
-                Message AS message,
-                EmailSent AS sent
-            FROM tblEmailMessage
-        """
+    """Read pending emails and mark them sent. The only place that knows the
+    queue table's schema."""
+
+    def get_pending(self) -> list[Email]:
+        """Return every email still waiting to be sent (EmailSent = 0)."""
+        query = f"SELECT {_SELECT_COLUMNS} FROM {TABLE} WHERE EmailSent = 0"
         try:
-            logging.info("Fetching emails from tblEmailMessage...")
-            with self._connection_factory() as conn, conn.cursor() as cursor:
+            logger.info("fetching pending emails from %s", TABLE)
+            with self._connection_factory() as conn:
+                cursor = conn.cursor()
                 cursor.execute(query)
                 rows = cursor.fetchall()
-                # Use the base repository helper function to turn rows into dicts, then unpack
-                return [Email(**self._row_to_dict(cursor, r)) for r in rows]
-        except pyodbc.Error as exc:
-            logging.error(f"Query execution failed: {exc}")
+            emails = [_row_to_email(row) for row in rows]
+            logger.info("fetched %d pending email(s)", len(emails))
+            return emails
+        except pyodbc.Error:
+            logger.exception("failed fetching pending emails")
             raise
 
-    def get_unsent(self) -> list[Email]:
-        """Fetches all unsent email messages"""
-        query = """
-            SELECT
-                EmailSerialNumber AS serial_number,
-                Machine AS machine
-                Email_To AS to,
-                EmailDateTime AS, datetime
-                Subject AS subject,
-                Message AS message,
-            FROM tblEmailMessage
-            WHERE email_sent = 0
-        """
-        try:
-            logging.info("Fetching unsent emails from tblEmailMessage...")
-            with self._connection_factory() as conn, conn.cursor() as cursor:
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                # Use the base repository helper function to turn rows into dicts, then unpack
-                return [Email(**self._row_to_dict(cursor, r)) for r in rows]
-        except pyodbc.Error as exc:
-            logging.error(f"Query execution failed: {exc}")
-            raise
+    def mark_sent(self, serial_number: int) -> None:
+        """Mark a single email as sent.
 
-    def get_by_serial_number(self, serial_number: int) -> Email | None:
-        """Fetches a single email message matching a serial number."""
-        query = """
-            SELECT UserID AS user_id, FirstName AS first_name, email_address
-            FROM Users WHERE UserID = ?
+        Deliberately narrow: it only ever sets EmailSent = 1 for one row,
+        identified by its unique serial number. It never touches the recipient,
+        subject, body, or any other column, so a bug elsewhere in the program
+        cannot corrupt the original message. Commits its own transaction so the
+        "sent" fact is durable the instant the email goes out.
         """
-        query = """
-            SELECT
-                EmailSerialNumber AS serial_number,
-                Machine AS machine
-                Email_To AS to,
-                EmailDateTime AS, datetime
-                Subject AS subject,
-                Message AS message,
-                EmailSent AS sent
-            FROM tblEmailMessage
-            WHERE serial_number = ?
-        """
+        query = f"UPDATE {TABLE} SET EmailSent = 1 WHERE EmailSerialNumber = ?"
         try:
-            logging.info("Fetching email messages by serial number from tblEmailMessage...")
-            with self._connection_factory() as conn, conn.cursor() as cursor:
-                cursor.execute(query, (serial_number,))
-                row = cursor.fetchone()
-                if not row:
-                    return None
-                # Use the base repository helper function to turn rows into dicts, then unpack
-                return Email(**self._row_to_dict(cursor, row))
-        except pyodbc.Error as exc:
-            logging.error(f"Query execution failed: {exc}")
-            raise
-
-    def update(self, email: Email) -> None:
-        """Update an email."""
-        query = """
-            UPDATE tblEmailMessage
-            SET Machine = ?,
-                Email_To = ?,
-                EmailDateTime = ?,
-                Subject = ?,
-                Message = ?,
-                EmailSent = ?
-            WHERE EmailSerialNumber = ?
-        """
-        try:
-            logging.info(f"Updating email with serial number {email.serial_number}")
-            with self._connection_factory() as conn, conn.cursor() as cursor:
-                cursor.execute(
-                    query,
-                    (
-                        email.machine,
-                        email.to,
-                        email.datetime,
-                        email.subject,
-                        email.message,
-                        email.sent,
-                        email.serial_number,
-                    ),
-                )
+            with self._connection_factory() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, serial_number)
                 conn.commit()
-        except pyodbc.Error as exc:
-            logging.error(f"Query execution failed: {exc}")
-            raise
-
-    def update_many(self, emails: list[Email]) -> None:
-        """
-        Update emails in a batch transaction.
-        """
-        if not emails:
-            logging.info("No emails to update.")
-            return
-
-        query = """
-            UPDATE tblEmailMessage
-            SET Machine = ?,
-                Email_To = ?,
-                EmailDateTime = ?,
-                Subject = ?,
-                Message = ?,
-                EmailSent = ?
-            WHERE EmailSerialNumber = ?
-        """
-        params_list = [
-            (
-                email.machine,
-                email.to,
-                email.datetime,
-                email.subject,
-                email.message,
-                email.sent,
-                email.serial_number,
-            )
-            for email in emails
-        ]
-
-        try:
-            logging.info("Updating emails...")
-            with self._connection_factory() as conn, conn.cursor() as cursor:
-                cursor.executemany(query, params_list)
-                conn.commit()
-        except pyodbc.Error as exc:
-            logging.error(f"Query execution failed: {exc}")
+            logger.info("marked email sent serial=%s", serial_number)
+        except pyodbc.Error:
+            logger.exception("failed marking email sent serial=%s", serial_number)
             raise

@@ -1,152 +1,96 @@
+"""Tests for settings resolution and validation.
+
+Pure logic - no fakes needed. Covers the resolution precedence
+(env > toml > default), the new encrypt/trust_cert fields, and the
+fail-fast PROD validation.
+"""
+
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
 
-from email_queue_handler.settings import (
-    DEFAULT_APP_NAME,
-    DEFAULT_EMAIL_SMTP_PORT,
-    DEFAULT_ENV,
-    DEFAULT_LOG_FILE,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_RUN_SECONDS,
-    ENV_PREFIX,
-    Settings,
-    load_settings,
-)
-
-# --- Settings dataclass validation ---
+from email_queue_handler.settings import Settings, load_settings
 
 
-def test_settings_defaults() -> None:
-    settings = Settings()
-    assert settings.app_name == DEFAULT_APP_NAME
-    assert settings.env == DEFAULT_ENV
-    assert settings.log_level == DEFAULT_LOG_LEVEL
-    assert settings.log_file == DEFAULT_LOG_FILE
-    assert settings.run_seconds == DEFAULT_RUN_SECONDS
-    assert settings.email_smtp_port == DEFAULT_EMAIL_SMTP_PORT
-    assert settings.sqlserver_password == ""
-    assert settings.email_password == ""
+class TestDefaults:
+    def test_driver18_secure_defaults(self) -> None:
+        s = Settings()
+        assert s.sqlserver_encrypt == "yes"
+        assert s.sqlserver_trust_cert == "no"  # secure default: opt in to trust
+
+    def test_default_env_is_dev(self) -> None:
+        assert Settings().env == "DEV"
 
 
-def test_settings_rejects_invalid_log_level() -> None:
-    with pytest.raises(ValueError, match="log_level"):
-        Settings(log_level="VERBOSE")
+class TestValidation:
+    def test_invalid_env_rejected(self) -> None:
+        with pytest.raises(ValueError, match="env must be one of"):
+            Settings(env="STAGING")
+
+    def test_invalid_log_level_rejected(self) -> None:
+        with pytest.raises(ValueError, match="log_level must be one of"):
+            Settings(log_level="CHATTY")
+
+    def test_out_of_range_port_rejected(self) -> None:
+        with pytest.raises(ValueError, match="email_smtp_port"):
+            Settings(email_smtp_port=70000)
+
+    def test_invalid_encrypt_value_rejected(self) -> None:
+        with pytest.raises(ValueError, match="sqlserver_encrypt"):
+            Settings(sqlserver_encrypt="maybe")
 
 
-def test_settings_rejects_invalid_env() -> None:
-    with pytest.raises(ValueError, match="env"):
-        Settings(env="STAGING")
+class TestProdValidation:
+    def test_prod_with_missing_fields_fails_fast(self) -> None:
+        with pytest.raises(ValueError, match="required in PROD"):
+            Settings(env="PROD")
+
+    def test_prod_error_names_the_missing_fields(self) -> None:
+        with pytest.raises(ValueError) as exc:
+            Settings(env="PROD", sqlserver_host="h")  # still missing others
+        msg = str(exc.value)
+        assert "sqlserver_driver" in msg
+        assert "sqlserver_host" not in msg  # this one WAS provided
+
+    def test_fully_configured_prod_is_valid(self) -> None:
+        s = Settings(
+            env="PROD",
+            sqlserver_driver="ODBC Driver 18 for SQL Server",
+            sqlserver_host="sql01",
+            sqlserver_database="db",
+            sqlserver_user="u",
+            sqlserver_password="pw",
+            email_smtp_server="smtp",
+            email_send_from="f@x",
+            email_password="pw2",
+        )
+        assert s.env == "PROD"
+
+    def test_dev_stays_lenient(self) -> None:
+        # DEV with everything blank must NOT raise - local experimentation.
+        Settings(env="DEV")
 
 
-def test_settings_rejects_negative_run_seconds() -> None:
-    with pytest.raises(ValueError, match="run_seconds"):
-        Settings(run_seconds=-1)
+class TestResolution:
+    def test_toml_values_load(self, tmp_path: Path) -> None:
+        cfg = tmp_path / "app.toml"
+        cfg.write_text(
+            '[app]\nenv = "DEV"\n[sqlserver]\nhost = "sql99"\ntrust_cert = "yes"\n',
+            encoding="utf-8",
+        )
+        s = load_settings(cfg)
+        assert s.sqlserver_host == "sql99"
+        assert s.sqlserver_trust_cert == "yes"
 
+    def test_env_overrides_toml(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg = tmp_path / "app.toml"
+        cfg.write_text('[sqlserver]\nhost = "from_toml"\n', encoding="utf-8")
+        monkeypatch.setenv("EQH_SQLSERVER_HOST", "from_env")
+        s = load_settings(cfg)
+        assert s.sqlserver_host == "from_env"
 
-def test_settings_rejects_invalid_email_smtp_port() -> None:
-    with pytest.raises(ValueError, match="email_smtp_port"):
-        Settings(email_smtp_port=0)
-
-
-# --- load_settings from TOML ---
-
-
-def test_load_settings_from_missing_toml_file_uses_defaults(tmp_path: Path) -> None:
-    settings = load_settings(tmp_path / "missing.toml")
-    assert settings == Settings()  # all defaults
-
-
-def test_load_settings_from_valid_toml_file(tmp_path: Path) -> None:
-    path = tmp_path / "app.toml"
-    path.write_text(
-        """
-[app]
-name = "test-handler"
-env = "TEST"
-log_level = "DEBUG"
-log_file = "/logs/test_handler.log"
-
-[sqlserver]
-driver = "sql_odbc_driver"
-host = "10.0.0.1"
-database = "sql_database"
-user = "sql_user"
-
-[service]
-run_seconds = 0
-
-[email]
-smtp_server = "mail.example.com"
-smtp_port = 587
-send_from = "from@example.com"
-send_to = "to@example.com"
-""".strip(),
-        encoding="utf-8",
-    )
-
-    settings = load_settings(path)
-
-    assert settings.app_name == "test-handler"
-    assert settings.env == "TEST"
-    assert settings.log_level == "DEBUG"
-    assert settings.log_file == "/logs/test_handler.log"
-    assert settings.sqlserver_driver == "sql_odbc_driver"
-    assert settings.sqlserver_host == "10.0.0.1"
-    assert settings.sqlserver_database == "sql_database"
-    assert settings.sqlserver_user == "sql_user"
-    assert settings.sqlserver_password == ""  # never from TOML
-    assert settings.run_seconds == 0
-    assert settings.email_smtp_server == "mail.example.com"
-    assert settings.email_smtp_port == 587
-    assert settings.email_send_from == "from@example.com"
-    assert settings.email_send_to == "to@example.com"
-    assert settings.email_password == ""  # never from TOML
-
-
-def test_load_settings_with_missing_tables_uses_default(tmp_path: Path) -> None:
-    path = tmp_path / "app.toml"
-    path.write_text('[app]\nname = "partial-config"\n', encoding="utf-8")
-    settings = load_settings(path)
-    assert settings.app_name == "partial-config"
-    assert settings.sqlserver_host == ""
-    assert settings.log_level == DEFAULT_LOG_LEVEL
-
-
-# --- load_settings env var overrides ---
-
-
-def test_load_settings_env_overrides_toml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    path = tmp_path / "app.toml"
-    path.write_text('[app]\nlog_level = "INFO"\n', encoding="utf-8")
-    monkeypatch.setenv(f"{ENV_PREFIX}_LOG_LEVEL", "WARNING")
-
-    settings = load_settings(path)
-
-    assert settings.log_level == "WARNING"
-
-
-def test_load_settings_sqlserver_password_from_env(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv(f"{ENV_PREFIX}_SQLSERVER_PASSWORD", "secret123")
-    settings = load_settings(tmp_path / "missing.toml")
-    assert settings.sqlserver_password == "secret123"
-
-
-def test_load_settings_email_password_from_env(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv(f"{ENV_PREFIX}_EMAIL_PASSWORD", "emailsecret")
-    settings = load_settings(tmp_path / "missing.toml")
-    assert settings.email_password == "emailsecret"
-
-
-def test_load_settings_passwords_not_loaded_from_toml(tmp_path: Path) -> None:
-    # Even if someone mistakenly adds passwords to the TOML, they must not be loaded.
-    # Passwords only come from env vars — this is enforced in load_settings().
-    path = tmp_path / "app.toml"
-    path.write_text('[sftp]\nhost = "10.0.0.1"\n', encoding="utf-8")
-    settings = load_settings(path)
-    assert settings.sqlserver_password == ""
-    assert settings.email_password == ""
+    def test_missing_file_uses_defaults(self, tmp_path: Path) -> None:
+        s = load_settings(tmp_path / "does_not_exist.toml")
+        assert s.app_name == "email-queue-handler"

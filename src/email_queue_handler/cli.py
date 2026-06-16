@@ -33,6 +33,11 @@ def version_callback(value: bool):
         raise typer.Exit()
 
 
+def _mask(value: str) -> str:
+    """Return masked credential string for safe display."""
+    return "***" if value else "(not set)"
+
+
 @app.callback()
 def main(
     ctx: typer.Context,
@@ -66,25 +71,48 @@ def hello(
 def read_config(
     config: Annotated[Path, typer.Option("--config", "-c", exists=False)] = Path("config/app.toml"),
 ) -> None:
-    """Read config and print resolved settings"""
+    """Read config and print resolved settings. Credentials are masked."""
     settings: Settings = resolve_settings(config)
-    print(f"app_name={settings.app_name!r}")
-    print(f"log_level={settings.log_level!r}")
-    print(f"env={settings.env!r}")
-    print(f"run_seconds={settings.run_seconds!r}")
+
+    print("[bold]App[/bold]")
+    print(f"  app_name={settings.app_name!r}")
+    print(f"  env={settings.env!r}")
+    print(f"  log_level={settings.log_level!r}")
+    print(f"  log_file={settings.log_file!r}")
+
+    print("[bold]SQL Server[/bold]")
+    print(f"  sqlserver_host={settings.sqlserver_host!r}")
+    print(f"  sqlserver_database={settings.sqlserver_database!r}")
+    print(f"  sqlserver_user={settings.sqlserver_user!r}")
+    print(f"  sqlserver_password={_mask(settings.sqlserver_password)}")
+
+    print("[bold]Email[/bold]")
+    print(f"  email_smtp_server={settings.email_smtp_server!r}")
+    print(f"  email_smtp_port={settings.email_smtp_port!r}")
+    print(f"  email_send_from={settings.email_send_from!r}")
+    print(f"  email_send_to={settings.email_send_to!r}")
+    print(f"  email_password={_mask(settings.email_password)}")
 
 
 @app.command()
 def run(
     config: Annotated[Path, typer.Option("--config", "-c", exists=False)] = Path("config/app.toml"),
 ) -> None:
-    """Run the service lifecycle once."""
+    """Run the service once over the email queue.
+
+    Exits 0 on a clean run (even if some individual emails failed and were
+    left for retry). Exits 1 on a run-level failure (database or SMTP
+    unreachable), so a scheduler can detect and react to a broken run.
+    """
     settings = resolve_settings(config)
     configure_logging(settings)
 
     service = Service(settings)
     service.start()
     try:
-        service.run()
+        summary = service.run()
     finally:
         service.stop()
+
+    if summary.run_failed:
+        raise typer.Exit(code=1)

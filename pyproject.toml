@@ -15,18 +15,12 @@ dependencies = [
   "pyodbc>=5.3.0",
 ]
 
-# Dependencies (extras) for end-users (runtime features); pip install package[extra]
-[project.optional-dependencies]
-yaml = [
-  "pyyaml>=6.0.1",
-]
-
 # Dependencies for workflow tooling during development (uv, testing, linting, etc.)
 [dependency-groups]
 dev = [
     "nox>=2026.2.9",
     "pre-commit>=4.5.1",
-    "pyright>=1.1.408",
+    "pyright==1.1.410",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.9",
@@ -39,7 +33,7 @@ eqh = "email_queue_handler.cli:app"
 packages = ["src/email_queue_handler"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src", "scripts"]
+pythonpath = [".", "src", "scripts"]
 testpaths = ["tests"]
 addopts = "-q"
 
