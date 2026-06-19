@@ -1,21 +1,35 @@
-### Python & uv ###
+# --- Python ---
 __pycache__/
 *.py[cod]
-.venv/
-.python-version
-
-### Nox & Pytest ###
-.nox/
+*.egg-info/
 .pytest_cache/
+.ruff_cache/
 .coverage
 .coverage.*
 htmlcov/
 
-### Neovim & Swaps ###
-*.swp
-*.swo
-*~
-.netrwhist
+# --- Virtual environment (rebuilt from uv.lock; never committed) ---
+.venv/
 
-### Environment Variables ###
+# --- nox sessions ---
+.nox/
+
+# --- Secrets: NEVER commit these ---
+# Real configuration with credentials and any local env files. The committed
+# config/app.toml is the TEMPLATE with blank secrets; a populated local copy
+# (if you make one) must not be tracked. Secrets live in machine env vars.
 .env
+.env.*
+*.local.toml
+
+# --- Runtime output ---
+logs/
+*.log
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+*.swp
+
+# NOTE: uv.lock is intentionally NOT ignored. It is committed so deployments
+# can `uv sync --frozen` against an exact, reproducible dependency set.

@@ -9,7 +9,10 @@ from .models import Email
 
 logger = logging.getLogger(__name__)
 
-TABLE = "OracleInterface.tblEmailMessage"
+# The connection selects the OracleInterface database (see app.toml
+# [sqlserver].database), so the table is referenced by schema.table within it.
+# The table lives in the default dbo schema.
+TABLE = "dbo.tblEmailMessage"
 
 # Column names are listed once, here, so the SELECT and the row-mapper cannot
 # drift apart. Order matters: it is the contract between the query and

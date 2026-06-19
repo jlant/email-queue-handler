@@ -2,28 +2,32 @@
 #
 # Resolution order for every setting: environment variable > this file > built-in
 # default. Secrets (passwords) are deliberately NOT placed here; supply them via
-# environment variables so they never live in version control:
+# machine-scoped environment variables so they never live in version control:
 #   EQH_SQLSERVER_PASSWORD, EQH_EMAIL_PASSWORD
 #
 # Environment-variable names follow the pattern EQH_<SECTION>_<KEY>, e.g.
 # the [sqlserver] host below is overridden by EQH_SQLSERVER_HOST.
+#
+# env = "PROD" enforces that every connection field below (and both password
+# env vars) is non-empty; a blank field will fail fast at startup. Replace
+# every <ANGLE_BRACKET> placeholder with a real value before deploying.
 
 [app]
 name = "email-queue-handler"
-env = "DEV"                 # DEV | TEST | PROD. PROD requires all connection fields.
+env = "PROD"                # strict: all connection fields required, fail-fast if blank
 log_level = "INFO"
 log_file = "logs/email_queue_handler.log"
 
 [sqlserver]
 driver = "ODBC Driver 18 for SQL Server"
-host = ""                   # e.g. "SQL01" or "SQL01\\INSTANCE,1433"
-database = "OracleInterface"
-user = ""                   # SQL login username; password via EQH_SQLSERVER_PASSWORD
-encrypt = "yes"             # Driver 18 default; leave "yes".
-trust_cert = "no"           # "yes" only for an internal/self-signed cert you trust.
+host = "KY01SQ01"            # e.g. "SQL01" or "SQL01\\INSTANCE" or "SQL01,1433"
+database = "OracleInterface"   # the DATABASE (confirm: is OracleInterface the db or the schema?)
+user = "ml-Machine"      # SQL login username; password via EQH_SQLSERVER_PASSWORD
+encrypt = "yes"               # Driver 18 default; leave "yes".
+trust_cert = "yes"            # internal self-signed cert: yes. Tighten to "no" with a trusted cert.
 
 [email]
-smtp_server = ""            # internal SMTP relay hostname
-smtp_port = 587             # 587 = STARTTLS
-send_from = ""              # the authenticated sender; password via EQH_EMAIL_PASSWORD
-send_to = ""                # administrator address for critical failure alerts
+smtp_server = "mail.llflex.com"   # internal SMTP relay hostname
+smtp_port = 587                     # 587 = STARTTLS
+send_from = "networkprinter@llflex.com"      # authenticated sender; password via EQH_EMAIL_PASSWORD
+send_to = "jlant@llflex.com"   # administrator address for critical failure alerts
