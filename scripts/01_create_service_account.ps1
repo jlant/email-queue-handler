@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 
 $AccountName = "svc_eqh"
 $FullName    = "Email Queue Handler Service Account"
-$Description  = "Runs the Email Queue Handler scheduled task (least privilege)."
+$Description  = "Runs the Email Queue Handler scheduled task."
 
 # Prompt for the password rather than hard-coding it in the script.
 $Password = Read-Host -AsSecureString "Enter a strong password for $AccountName"
