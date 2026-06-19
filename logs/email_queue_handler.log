@@ -668,3 +668,137 @@ ValueError: simulated send failure for bad@x.com
 2026-06-16 16:19:11,991 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
 2026-06-16 16:19:11,991 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
 2026-06-16 16:19:11,991 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,279 | INFO | email_queue_handler.logging | logging configured log_level=INFO log_file=logs/email_queue_handler.log
+2026-06-17 12:21:04,281 | INFO | email_queue_handler.service | starting service app=run-test env=TEST
+2026-06-17 12:21:04,281 | INFO | email_queue_handler.service | running service app=run-test env=TEST
+2026-06-17 12:21:04,281 | INFO | email_queue_handler.service | no pending emails
+2026-06-17 12:21:04,282 | INFO | email_queue_handler.service | stopping service app=run-test env=TEST
+2026-06-17 12:21:04,284 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:04,284 | INFO | email_queue_handler.email_repository | fetched 2 pending email(s)
+2026-06-17 12:21:04,285 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:04,285 | INFO | email_queue_handler.email_repository | fetched 0 pending email(s)
+2026-06-17 12:21:04,285 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:04,285 | INFO | email_queue_handler.email_repository | fetched 1 pending email(s)
+2026-06-17 12:21:04,286 | INFO | email_queue_handler.email_repository | marked email sent serial=16336
+2026-06-17 12:21:04,287 | INFO | email_queue_handler.email_repository | marked email sent serial=1
+2026-06-17 12:21:04,299 | INFO | email_queue_handler.processor | email processed serial=42
+2026-06-17 12:21:04,300 | ERROR | email_queue_handler.processor | email failed serial=7
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@example.com
+2026-06-17 12:21:04,301 | ERROR | email_queue_handler.processor | email failed serial=7
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@example.com
+2026-06-17 12:21:04,302 | ERROR | email_queue_handler.processor | email failed serial=9
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 48, in handle_email
+    validate_email(email)
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 22, in validate_email
+    raise ValueError(msg)
+ValueError: recipient is empty
+2026-06-17 12:21:04,302 | ERROR | email_queue_handler.processor | email failed serial=5
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 52, in handle_email
+    marker.mark_sent(email.serial_number)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 94, in mark_sent
+    raise RuntimeError(msg)
+RuntimeError: simulated mark failure for 5
+2026-06-17 12:21:04,303 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,303 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,303 | INFO | email_queue_handler.processor | email processed serial=1
+2026-06-17 12:21:04,303 | INFO | email_queue_handler.processor | email processed serial=2
+2026-06-17 12:21:04,303 | INFO | email_queue_handler.processor | email processed serial=3
+2026-06-17 12:21:04,304 | INFO | email_queue_handler.service | run complete fetched=3 sent=3 failed=0
+2026-06-17 12:21:04,304 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,304 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,304 | INFO | email_queue_handler.processor | email processed serial=1
+2026-06-17 12:21:04,304 | ERROR | email_queue_handler.processor | email failed serial=2
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@x.com
+2026-06-17 12:21:04,305 | INFO | email_queue_handler.processor | email processed serial=3
+2026-06-17 12:21:04,305 | INFO | email_queue_handler.service | run complete fetched=3 sent=2 failed=1
+2026-06-17 12:21:04,305 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,305 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,305 | INFO | email_queue_handler.service | no pending emails
+2026-06-17 12:21:04,306 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,306 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,307 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:04,307 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,639 | INFO | email_queue_handler.logging | logging configured log_level=INFO log_file=logs/email_queue_handler.log
+2026-06-17 12:21:05,639 | INFO | email_queue_handler.service | starting service app=run-test env=TEST
+2026-06-17 12:21:05,639 | INFO | email_queue_handler.service | running service app=run-test env=TEST
+2026-06-17 12:21:05,639 | INFO | email_queue_handler.service | no pending emails
+2026-06-17 12:21:05,639 | INFO | email_queue_handler.service | stopping service app=run-test env=TEST
+2026-06-17 12:21:05,642 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:05,642 | INFO | email_queue_handler.email_repository | fetched 2 pending email(s)
+2026-06-17 12:21:05,642 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:05,642 | INFO | email_queue_handler.email_repository | fetched 0 pending email(s)
+2026-06-17 12:21:05,643 | INFO | email_queue_handler.email_repository | fetching pending emails from OracleInterface.tblEmailMessage
+2026-06-17 12:21:05,643 | INFO | email_queue_handler.email_repository | fetched 1 pending email(s)
+2026-06-17 12:21:05,644 | INFO | email_queue_handler.email_repository | marked email sent serial=16336
+2026-06-17 12:21:05,645 | INFO | email_queue_handler.email_repository | marked email sent serial=1
+2026-06-17 12:21:05,661 | INFO | email_queue_handler.processor | email processed serial=42
+2026-06-17 12:21:05,662 | ERROR | email_queue_handler.processor | email failed serial=7
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@example.com
+2026-06-17 12:21:05,663 | ERROR | email_queue_handler.processor | email failed serial=7
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@example.com
+2026-06-17 12:21:05,664 | ERROR | email_queue_handler.processor | email failed serial=9
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 48, in handle_email
+    validate_email(email)
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 22, in validate_email
+    raise ValueError(msg)
+ValueError: recipient is empty
+2026-06-17 12:21:05,665 | ERROR | email_queue_handler.processor | email failed serial=5
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 52, in handle_email
+    marker.mark_sent(email.serial_number)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 94, in mark_sent
+    raise RuntimeError(msg)
+RuntimeError: simulated mark failure for 5
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.processor | email processed serial=1
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.processor | email processed serial=2
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.processor | email processed serial=3
+2026-06-17 12:21:05,666 | INFO | email_queue_handler.service | run complete fetched=3 sent=3 failed=0
+2026-06-17 12:21:05,667 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,667 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,667 | INFO | email_queue_handler.processor | email processed serial=1
+2026-06-17 12:21:05,667 | ERROR | email_queue_handler.processor | email failed serial=2
+Traceback (most recent call last):
+  File "/home/jlant/4-projects/email-queue-handler/src/email_queue_handler/processor.py", line 49, in handle_email
+    mailer.send_one(email)
+  File "/home/jlant/4-projects/email-queue-handler/tests/conftest.py", line 66, in send_one
+    raise ValueError(msg)
+ValueError: simulated send failure for bad@x.com
+2026-06-17 12:21:05,667 | INFO | email_queue_handler.processor | email processed serial=3
+2026-06-17 12:21:05,667 | INFO | email_queue_handler.service | run complete fetched=3 sent=2 failed=1
+2026-06-17 12:21:05,668 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,668 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,668 | INFO | email_queue_handler.service | no pending emails
+2026-06-17 12:21:05,668 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,669 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,669 | INFO | email_queue_handler.service | starting service app=email-queue-handler env=DEV
+2026-06-17 12:21:05,669 | INFO | email_queue_handler.service | running service app=email-queue-handler env=DEV
