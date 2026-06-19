@@ -90,16 +90,26 @@ $principal = New-ScheduledTaskPrincipal @principalArgs
 $task = New-ScheduledTask -Action $action -Trigger $trigger -Settings $settings -Principal $principal
 
 # --- Register it. The password is prompted, never written in the script. ---
-$cred = Get-Credential -UserName $Account -Message "Enter the password for $Account"
+# --- Register it. Prompt for the password IN THE TERMINAL (not the GUI ---
+# credential dialog, which has focus-handling quirks). The password is read as
+# a SecureString and converted only at the moment of use; never written in the
+# script or echoed to the console.
+$securePw = Read-Host -AsSecureString "Enter the password for $Account"
+$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePw)
+try {
+    $plainPw = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
 
-$registerArgs = @{
-    TaskName   = $TaskName
-    InputObject = $task
-    User       = $cred.UserName
-    Password   = $cred.GetNetworkCredential().Password
-    Force      = $true
+    $registerArgs = @{
+        TaskName    = $TaskName
+        InputObject = $task
+        User        = $Account
+        Password    = $plainPw
+        Force       = $true
+    }
+    Register-ScheduledTask @registerArgs
+} finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
 }
-Register-ScheduledTask @registerArgs
 
 Write-Host ""
 Write-Host "Registered scheduled task '$TaskName'." -ForegroundColor Green
