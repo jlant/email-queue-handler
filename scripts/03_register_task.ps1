@@ -41,51 +41,65 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# NOTE: this script uses "splatting" (passing a hashtable of parameters with @)
+# rather than backtick line-continuation. Backtick continuations with inline
+# comments are fragile in PowerShell - a comment between the backtick and the
+# newline breaks the continuation. Splatting avoids that entirely and lets each
+# parameter carry a normal comment.
+
 # --- Action: run one pass of the handler in the install directory ---
-# We call uv with an explicit project directory so the task's working directory
-# does not matter. `run eqh run` executes the console script in the locked venv.
-$action = New-ScheduledTaskAction `
-    -Execute $UvPath `
-    -Argument "run eqh run --config `"$InstallDir\config\app.toml`"" `
-    -WorkingDirectory $InstallDir
+# We call uv with an explicit --config so the working directory does not matter.
+# "run eqh run" executes the console script in the locked venv.
+$actionArgs = @{
+    Execute          = $UvPath
+    Argument         = "run eqh run --config `"$InstallDir\config\app.toml`""
+    WorkingDirectory = $InstallDir
+}
+$action = New-ScheduledTaskAction @actionArgs
 
 # --- Trigger: every 1 minute, indefinitely, starting now ---
-# Task Scheduler's repetition is built on top of a base trigger. We start with a
-# one-time trigger and attach a 1-minute repetition for an (effectively) endless
-# duration.
+# Task Scheduler builds repetition on top of a base trigger: a one-time trigger
+# with a 1-minute repetition for an effectively endless duration.
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date)
-$trigger.Repetition = (New-ScheduledTaskTrigger -Once -At (Get-Date) `
+$repeatSource = New-ScheduledTaskTrigger -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes 1) `
-    -RepetitionDuration ([TimeSpan]::MaxValue)).Repetition
+    -RepetitionDuration ([TimeSpan]::MaxValue)
+$trigger.Repetition = $repeatSource.Repetition
 
 # --- Settings: the production-safety knobs ---
-$settings = New-ScheduledTaskSettingsSet `
-    -MultipleInstances IgnoreNew `      # <-- NO OVERLAP: skip a trigger if still running
-    -StartWhenAvailable `               # catch up if the server was briefly off
-    -DontStopOnIdleEnd `
-    -ExecutionTimeLimit (New-TimeSpan -Minutes 5) `  # kill a hung run; next minute is fresh
-    -RestartCount 0
+$settingsArgs = @{
+    MultipleInstances  = "IgnoreNew"                    # NO OVERLAP: skip a trigger if still running
+    StartWhenAvailable = $true                          # catch up if the server was briefly off
+    DontStopOnIdleEnd  = $true                          # keep running regardless of idle state
+    ExecutionTimeLimit = (New-TimeSpan -Minutes 5)      # kill a hung run; next minute is fresh
+    RestartCount       = 0                              # do not auto-retry a failed run
+}
+$settings = New-ScheduledTaskSettingsSet @settingsArgs
 
 # --- Principal: who it runs as, and how ---
-# S4U = run whether or not the user is logged on, WITHOUT storing the password
-# in a way that grants interactive logon. RunLevel Limited = least privilege
-# (do NOT use Highest unless a specific need arises).
-$principal = New-ScheduledTaskPrincipal `
-    -UserId $Account `
-    -LogonType Password `
-    -RunLevel Limited
+# LogonType Password = run whether or not the user is logged on.
+# RunLevel Limited = least privilege (do NOT use Highest without a specific need).
+$principalArgs = @{
+    UserId    = $Account
+    LogonType = "Password"
+    RunLevel  = "Limited"
+}
+$principal = New-ScheduledTaskPrincipal @principalArgs
 
-# Build and register. -Password is prompted so it is never written in the script.
+# --- Build the task object ---
 $task = New-ScheduledTask -Action $action -Trigger $trigger -Settings $settings -Principal $principal
 
+# --- Register it. The password is prompted, never written in the script. ---
 $cred = Get-Credential -UserName $Account -Message "Enter the password for $Account"
 
-Register-ScheduledTask `
-    -TaskName $TaskName `
-    -InputObject $task `
-    -User $cred.UserName `
-    -Password $cred.GetNetworkCredential().Password `
-    -Force
+$registerArgs = @{
+    TaskName   = $TaskName
+    InputObject = $task
+    User       = $cred.UserName
+    Password   = $cred.GetNetworkCredential().Password
+    Force      = $true
+}
+Register-ScheduledTask @registerArgs
 
 Write-Host ""
 Write-Host "Registered scheduled task '$TaskName'." -ForegroundColor Green
