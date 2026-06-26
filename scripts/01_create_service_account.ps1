@@ -41,12 +41,45 @@ if (Get-LocalUser -Name $AccountName -ErrorAction SilentlyContinue) {
 }
 
 # The account does NOT need to be an administrator. It needs only:
-#   - "Log on as a batch job" (granted automatically when you register a task
-#     to run whether-logged-on-or-not with this account, or grant explicitly
-#     via secpol.msc -> Local Policies -> User Rights Assignment).
+#   - "Log on as a batch job" (granted below; required for a scheduled task to
+#     launch non-interactively - without it the task fails to run with 0x41303).
 #   - Read access to the install directory and write access to the log directory
 #     (handled in the deploy step).
 # Deliberately NOT adding it to the Administrators group: least privilege.
+
+# --- Grant "Log on as a batch job" (SeBatchLogonRight) ---
+# There is no native cmdlet for user-rights assignment, so we use secedit:
+# export the current policy, ensure the account's SID is on the batch-logon
+# line, and re-import. Idempotent - safe to run when the right is already held.
+Write-Host ""
+Write-Host "Granting 'Log on as a batch job' to $AccountName ..." -ForegroundColor Cyan
+
+$sid = (Get-LocalUser -Name $AccountName).SID.Value
+$tmpDir = [System.IO.Path]::GetTempPath()
+$infPath = Join-Path $tmpDir "eqh_secpol.inf"
+$dbPath  = Join-Path $tmpDir "eqh_secpol.sdb"
+
+secedit /export /cfg $infPath /areas USER_RIGHTS | Out-Null
+$content = Get-Content $infPath
+$line = $content | Where-Object { $_ -match "^SeBatchLogonRight" }
+
+if (-not $line) {
+    # No batch-logon line at all: add one granting only this SID.
+    $content += "SeBatchLogonRight = *$sid"
+} elseif ($line -notmatch [regex]::Escape($sid)) {
+    # Line exists but our SID is missing: append it.
+    $content = $content -replace "^(SeBatchLogonRight\s*=\s*.*)$", "`$1,*$sid"
+} else {
+    Write-Host "  $AccountName already has the batch-logon right - skipping." -ForegroundColor Yellow
+}
+
+if ($line -notmatch [regex]::Escape($sid)) {
+    Set-Content -Path $infPath -Value $content -Encoding Unicode
+    secedit /configure /db $dbPath /cfg $infPath /areas USER_RIGHTS | Out-Null
+    Write-Host "  granted." -ForegroundColor Green
+}
+
+Remove-Item $infPath, $dbPath -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "Next: run 02_set_machine_env.ps1 to set the secret environment variables." -ForegroundColor Cyan
