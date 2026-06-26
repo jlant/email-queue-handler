@@ -113,6 +113,7 @@ running task. Run them elevated; on a fresh server they are run in order.
 | `05_deploy.ps1` | `git pull` + `uv sync --frozen` + test gate + log-dir permissions. | Every deploy/update. |
 | `03_register_task.ps1` | Register the every-minute scheduled task as `svc_eqh`. | Once per server. |
 | `04_smoke_test.ps1` | Verify uv, config, a forced run, and the log tail. | After every deploy. |
+| `06_control.ps1` | Check status, pause/resume, stop, or trigger the task. | As needed (operational). |
 
 ### First install
 
@@ -152,6 +153,38 @@ commit restores that version's exact dependencies too:
 ```powershell
 git checkout <previous-tag-or-commit>
 powershell -ExecutionPolicy Bypass -File .\05_deploy.ps1 -NoPull
+```
+
+### Operating the service (start / stop / status)
+
+Use `06_control.ps1` to control the running task. With no switch it shows
+status only (read-only).
+
+```powershell
+cd C:\Apps\email-queue-handler\scripts
+
+# Check status (state, last result, next run) — read-only
+powershell -ExecutionPolicy Bypass -File .\06_control.ps1
+
+# Pause (reversible) — stops the task from firing
+powershell -ExecutionPolicy Bypass -File .\06_control.ps1 -Disable
+
+# Resume
+powershell -ExecutionPolicy Bypass -File .\06_control.ps1 -Enable
+
+# Stop an in-flight run AND pause
+powershell -ExecutionPolicy Bypass -File .\06_control.ps1 -Disable -StopRunning
+
+# Trigger one run now (without changing enabled/disabled state)
+powershell -ExecutionPolicy Bypass -File .\06_control.ps1 -RunNow
+```
+
+Pausing is lossless: while the task is disabled, rows accumulate in the queue
+with `EmailSent = 0` and are sent when it is re-enabled. To remove the task
+entirely (decommissioning), unregister it:
+
+```powershell
+Unregister-ScheduledTask -TaskName "EmailQueueHandler" -Confirm:$false
 ```
 
 ## How it runs in production
