@@ -59,11 +59,12 @@ $action = New-ScheduledTaskAction @actionArgs
 
 # --- Trigger: every 1 minute, indefinitely, starting now ---
 # Task Scheduler builds repetition on top of a base trigger: a one-time trigger
-# with a 1-minute repetition for an effectively endless duration.
+# with a 1-minute repetition. For an INDEFINITE repetition you OMIT the
+# duration entirely - do NOT pass [TimeSpan]::MaxValue, which serializes to a
+# duration the Task Scheduler engine rejects as out of range.
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date)
 $repeatSource = New-ScheduledTaskTrigger -Once -At (Get-Date) `
-    -RepetitionInterval (New-TimeSpan -Minutes 1) `
-    -RepetitionDuration ([TimeSpan]::MaxValue)
+    -RepetitionInterval (New-TimeSpan -Minutes 1)
 $trigger.Repetition = $repeatSource.Repetition
 
 # --- Settings: the production-safety knobs ---
