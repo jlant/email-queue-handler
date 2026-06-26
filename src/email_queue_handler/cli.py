@@ -60,14 +60,6 @@ def main(
 
 
 @app.command()
-def hello(
-    name: str = typer.Option("world", "--name", "-n"),
-) -> None:
-    """Example command that prints a greeting."""
-    print(f"[bold green]Hello, {name}![/bold green]")
-
-
-@app.command()
 def read_config(
     config: Annotated[Path, typer.Option("--config", "-c", exists=False)] = Path("config/app.toml"),
 ) -> None:

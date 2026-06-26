@@ -20,18 +20,6 @@ from email_queue_handler.cli import CLI_NAME, app
 runner = CliRunner()
 
 
-def test_hello_default_name() -> None:
-    r = runner.invoke(app, ["hello"])
-    assert r.exit_code == 0
-    assert "Hello, world" in r.stdout
-
-
-def test_hello_custom_name() -> None:
-    r = runner.invoke(app, ["hello", "--name", "Jeremiah"])
-    assert r.exit_code == 0
-    assert "Hello, Jeremiah" in r.stdout
-
-
 def test_version_flag() -> None:
     r = runner.invoke(app, ["--version"])
     assert r.exit_code == 0

@@ -1,79 +1,45 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-04-29
+## [0.1.0] - 2026-06-26
+
+First release. Monitors a SQL Server queue and dispatches pending emails via
+SMTP, designed to run as a Windows Scheduled Task once per minute.
 
 ### Added
+- Queue processing: reads `dbo.tblEmailMessage` rows where `EmailSent = 0`,
+  sends each via SMTP, and marks sent rows by `EmailSerialNumber`.
+- Send-then-mark ordering: a row is marked sent only after the email is sent,
+  so a mid-run failure causes a recoverable duplicate rather than a lost email.
+- Per-email resilience: each message is processed in isolation; a bad recipient
+  is logged and skipped without halting the queue.
+- Run-level failure alerts: an administrator is emailed if the database or SMTP
+  server is unreachable.
+- Repository pattern over the SQL boundary, with `EmailMailer` / `EmailMarker`
+  Protocols isolating business logic from `pyodbc` and `smtplib`.
+- Settings resolution (environment variable > `config/app.toml` > default) with
+  fail-fast validation when `env = "PROD"`. Secrets are supplied only via
+  `EQH_SQLSERVER_PASSWORD` and `EQH_EMAIL_PASSWORD`.
+- Explicit `encrypt` / `trust_cert` settings for ODBC Driver 18 connections.
+- Typer CLI: `run`, `read-config` (prints resolved settings with passwords
+  masked), and `--version`.
+- Console + rotating-file logging.
+- Test suite (pytest) using in-memory fakes, with strict pyright type checking
+  and ruff lint/format, orchestrated by nox across Python 3.11 and 3.12.
+- Windows deployment scripts (`scripts/`): machine-wide uv install,
+  least-privilege service account with batch-logon right, machine-scoped
+  secrets, scheduled-task registration, a deploy/update script
+  (`git pull` + `uv sync --frozen` + test gate), and a smoke test.
 
-- Updated and improved `settings.py` and corresponding `test_settings.py`.
-- Updated and improved `service.py`.
+### Known limitations
+- No poison-message handling: a permanently-unsendable email stays
+  `EmailSent = 0` and is retried every run.
 
-
-## [0.1.0] - 2026-04-24
-
-### Added
-
-- Added old project name as a variable in the `rename_template.py` script.
-
-### Changed
-
-- Using `DEFAULT_APP_NAME` from `settings.py` in `tests/test_config.py` instead of hard-coded app name
-- Updated the string variable names in the `OLD` variable to be more clear and generic, and to not get
-  replaced by the `rename_template.py` script.
-- Updated the description in the `README.md` and the header text in `cli.py`
-
-## [0.1.0] - 2026-04-23
-
-### Removed
-
-- Functionality that automatically removed the "## Example - renaming the template"
-  section in the `README.md` file.
-
-
-### Added
-
-- Tests for the `rename_template.py` script in `tests/test_rename_template.py`.
-- Additional tooling configuration in `pyproject.toml` and `noxfile.py` for `pytest` and `pyright`
-  for the inclusion of the tests for the `rename_template.py` script.
-
-## [0.1.0] - 2026-04-22
-
-### Added
-
-- Initial project structure using `src/` layout with `hatchling` as the build backend.
-- CLI interface using `Typer` with `hello`, `read-config`, and `run` commands.
-- `Settings` dataclass with layered configuration: defaults → TOML file → environment variables.
-- `Service` class with `start()`, `run()`, and `stop()` lifecycle methods.
-- Optional `pipeline.py` module for YAML-driven multi-step orchestration (requires `yaml` extra).
-- `configure_logging()` for structured application logging at startup.
-- `pyproject.toml` with `uv` as the package manager and `hatchling` as the build backend.
-- `nox` sessions for `fmt`, `lint`, and `tests` using `uv sync --frozen` for reproducible installs.
-- `ruff` for linting and formatting with rules: `E`, `F`, `I`, `UP`, `B`, `SIM`, `C4`, `PTH`, `RUF`.
-- `pyright` in strict mode for static type checking.
-- `pytest` with `pytest-cov` enforcing 80% minimum coverage.
-- `pre-commit` hooks for `ruff`, `ruff-format`, and common file hygiene checks.
-- GitHub Actions CI workflow running lint and tests on Python 3.11 and 3.12.
-- MIT License.
-
-### Changed
-
-- Replaced `rename_template.sh` shell script with `rename_template.py` Python script for
-  cross-platform reliability, input validation, and a `--dry-run` mode.
-- Replaced the environment variable `<CLI_NAME>_` prefix in `settings.py` with an `ENV_PREFIX = "APP"` for
-  a generic, self-documenting, and import-free way to prefix the environment variables, and it also works
-  correctly after any rename without modification.
-
-### Fixed
-
-- Text replacement in `replace_template.py` for console script entry point by reordering
-  the replacements so the console script entry point is handled before the general
-  `"{old_pkg}.` replacement
-
-[Unreleased]: https://github.com/jlant/python-service-template/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/jlant/python-service-template/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jlant/email-queue-handler/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jlant/email-queue-handler/releases/tag/v0.1.0
