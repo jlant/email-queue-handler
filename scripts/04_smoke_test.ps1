@@ -41,17 +41,32 @@ Write-Host "Check above: passwords should show *** (set), host/db/smtp populated
 Write-Host ""
 Write-Host "=== 3. Force one immediate task run, then inspect result ===" -ForegroundColor Cyan
 Start-ScheduledTask -TaskName $TaskName
-Start-Sleep -Seconds 5
-$info = Get-ScheduledTask -TaskName $TaskName | Get-ScheduledTaskInfo
-Write-Host "LastRunTime : $($info.LastRunTime)"
-Write-Host "LastTaskResult (0x0 = success): 0x{0:X}" -f $info.LastTaskResult
+
+# Poll until the task leaves the Running state (or we give up). A freshly
+# triggered task may take a few seconds to start AND finish; reading the result
+# too early shows the sentinel "never run" date or the still-running code.
+$deadline = (Get-Date).AddSeconds(45)
+do {
+    Start-Sleep -Seconds 3
+    $task = Get-ScheduledTask -TaskName $TaskName
+    $info = $task | Get-ScheduledTaskInfo
+    $state = $task.State
+    Write-Host "  state=$state last_run=$($info.LastRunTime)" -ForegroundColor DarkGray
+} while ($state -eq "Running" -and (Get-Date) -lt $deadline)
+
+# Format the result code on its own line FIRST, then print it. (Mixing the -f
+# operator directly into Write-Host args mis-binds -ForegroundColor.)
+$resultHex = "0x{0:X}" -f $info.LastTaskResult
+Write-Host "LastRunTime    : $($info.LastRunTime)"
+Write-Host "LastTaskResult : $resultHex   (0x0 = success)"
 if ($info.LastTaskResult -eq 0) {
     Write-Host "OK: task ran and exited 0." -ForegroundColor Green
 } else {
     Write-Host "Task exited non-zero. Common codes:" -ForegroundColor Yellow
-    Write-Host "  0x1  - app raised / run-level failure (check the app log)" -ForegroundColor DarkGray
-    Write-Host "  0x41301 - still running (increase sleep, or run is slow)" -ForegroundColor DarkGray
-    Write-Host "  0x2  - file not found (uv path or install dir wrong)" -ForegroundColor DarkGray
+    Write-Host "  0x1     - app raised / run-level failure (check the app log below)" -ForegroundColor DarkGray
+    Write-Host "  0x41301 - still running (the poll above timed out)" -ForegroundColor DarkGray
+    Write-Host "  0x2     - file not found (uv path or install dir wrong)" -ForegroundColor DarkGray
+    Write-Host "  0x41303 - task has never run (trigger/registration issue)" -ForegroundColor DarkGray
 }
 
 Write-Host ""
