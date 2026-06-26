@@ -34,12 +34,24 @@
 
 param(
     [string]$InstallDir = "C:\Apps\email-queue-handler",
-    [string]$UvPath     = "C:\ProgramData\uv\uv.exe",
+    [string]$UvPath     = "C:\ProgramData\uv\bin\uv.exe",
     [string]$Account    = ".\svc_eqh",
     [string]$TaskName   = "EmailQueueHandler"
 )
 
 $ErrorActionPreference = "Stop"
+
+# --- Normalize the account name for reliable SID resolution ---
+# Task Scheduler's principal resolves a fully-qualified "COMPUTERNAME\user" more
+# reliably than the ".\user" shorthand (which can fail with 0x80070534, "no
+# mapping between account names and security IDs"). Convert ".\user" or a bare
+# "user" into "$env:COMPUTERNAME\user"; leave an already-qualified name as-is.
+if ($Account -like ".\*") {
+    $Account = "$env:COMPUTERNAME\" + $Account.Substring(2)
+} elseif ($Account -notlike "*\*") {
+    $Account = "$env:COMPUTERNAME\$Account"
+}
+Write-Host "Registering task to run as: $Account" -ForegroundColor Cyan
 
 # NOTE: this script uses "splatting" (passing a hashtable of parameters with @)
 # rather than backtick line-continuation. Backtick continuations with inline
