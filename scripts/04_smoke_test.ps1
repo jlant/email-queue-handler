@@ -11,7 +11,7 @@
 
 param(
     [string]$InstallDir = "C:\Apps\email-queue-handler",
-    [string]$UvPath     = "C:\ProgramData\uv\uv.exe",
+    [string]$UvPath     = "C:\ProgramData\uv\bin\uv.exe",
     [string]$TaskName   = "EmailQueueHandler"
 )
 
